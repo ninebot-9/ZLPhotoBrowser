@@ -126,16 +126,16 @@ public class ZLPhotoManager: NSObject {
             option.predicate = NSPredicate(format: "mediaType == %ld", PHAssetMediaType.image.rawValue)
         }
         
-        let smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil) as! PHFetchResult<PHCollection>
-        let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: nil) as! PHFetchResult<PHCollection>
-        let streamAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumMyPhotoStream, options: nil) as! PHFetchResult<PHCollection>
-        let syncedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumSyncedAlbum, options: nil) as! PHFetchResult<PHCollection>
-        let sharedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil) as! PHFetchResult<PHCollection>
-        let arr = [smartAlbums, albums, streamAlbums, syncedAlbums, sharedAlbums]
+        let smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil) as? PHFetchResult<PHCollection>
+        let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumRegular, options: nil) as? PHFetchResult<PHCollection>
+        let streamAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumMyPhotoStream, options: nil) as? PHFetchResult<PHCollection>
+        let syncedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumSyncedAlbum, options: nil) as? PHFetchResult<PHCollection>
+        let sharedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil) as? PHFetchResult<PHCollection>
+        let arr = [smartAlbums, albums, streamAlbums, syncedAlbums, sharedAlbums].compactMap { $0 }
         
         var albumList: [ZLAlbumListModel] = []
-        arr.forEach { (album) in
-            album.enumerateObjects { (collection, _, _) in
+        arr.forEach { album in
+            album.enumerateObjects { collection, _, _ in
                 guard let collection = collection as? PHAssetCollection else { return }
                 if collection.assetCollectionSubtype == .smartAlbumAllHidden {
                     return
@@ -172,8 +172,13 @@ public class ZLPhotoManager: NSObject {
         if !allowSelectVideo {
             option.predicate = NSPredicate(format: "mediaType == %ld", PHAssetMediaType.image.rawValue)
         }
-        
-        let smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
+        var smartAlbums: PHFetchResult<PHAssetCollection>
+        if #available(iOS 18, *) {
+            smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .any, options: nil)
+        } else {
+            // Fallback on earlier versions
+            smartAlbums = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
+        }
         smartAlbums.enumerateObjects { (collection, _, stop) in
             if collection.assetCollectionSubtype == .smartAlbumUserLibrary {
                 let result = PHAsset.fetchAssets(in: collection, options: option)
